@@ -9,7 +9,7 @@
     <packaging>pom</packaging>
 
     <name>KeepNote-Step-6-Boilerplate</name>
-    <description>project for Spring Boot Keep Note Step-5</description>
+    <description>project for Spring Boot Keep Note Step-6</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>

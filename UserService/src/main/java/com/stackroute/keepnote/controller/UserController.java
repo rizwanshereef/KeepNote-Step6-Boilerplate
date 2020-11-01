@@ -1,5 +1,20 @@
 package com.stackroute.keepnote.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.stackroute.keepnote.exceptions.UserAlreadyExistsException;
+import com.stackroute.keepnote.exceptions.UserNotFoundException;
+import com.stackroute.keepnote.model.User;
 import com.stackroute.keepnote.service.UserService;
 
 /*
@@ -10,7 +25,8 @@ import com.stackroute.keepnote.service.UserService;
  * format. Starting from Spring 4 and above, we can use @RestController annotation which 
  * is equivalent to using @Controller and @ResposeBody annotation
  */
-
+@RestController
+@RequestMapping("/api/v1/user")
 public class UserController {
 
 	/*
@@ -18,8 +34,11 @@ public class UserController {
 	 * autowiring) Please note that we should not create an object using the new
 	 * keyword
 	 */
-
-	public UserController(UserService userService) {
+	@Autowired
+	UserService service;
+	
+	public UserController(UserService service) {
+		this.service = service;
 	}
 
 	/*
@@ -32,6 +51,15 @@ public class UserController {
 	 * 
 	 * This handler method should map to the URL "/user" using HTTP POST method
 	 */
+	@PostMapping
+	public ResponseEntity<String> create(@RequestBody User user) {
+		try {
+			service.registerUser(user);
+			return new ResponseEntity<String>("Created", HttpStatus.CREATED);
+		} catch (UserAlreadyExistsException e) {
+			return new ResponseEntity<String>(e.getMessage(), HttpStatus.CONFLICT);
+		}
+	}
 
 	/*
 	 * Define a handler method which will update a specific user by reading the
@@ -43,6 +71,14 @@ public class UserController {
 	 * 
 	 * This handler method should map to the URL "/api/v1/user/{id}" using HTTP PUT method.
 	 */
+	@PutMapping("/{id}")
+	public ResponseEntity<?> update(@PathVariable() String id, @RequestBody User user) {
+		try {
+			return new ResponseEntity<User>(service.updateUser(id, user), HttpStatus.OK);
+		} catch (UserNotFoundException exception) {
+			return new ResponseEntity<String>(exception.getMessage(), HttpStatus.NOT_FOUND);
+		}
+	}
 
 	/*
 	 * Define a handler method which will delete a user from a database.
@@ -54,6 +90,16 @@ public class UserController {
 	 * This handler method should map to the URL "/api/v1/user/{id}" using HTTP Delete
 	 * method" where "id" should be replaced by a valid userId without {}
 	 */
+	@DeleteMapping("/{id}")
+	public ResponseEntity<String> delete(@PathVariable() String id) {
+		try {
+			service.deleteUser(id);
+			return new ResponseEntity<String>("Successfully Deleted User with id: " + id, HttpStatus.OK);
+		} catch (UserNotFoundException exception) {
+			return new ResponseEntity<String>(exception.getMessage(), HttpStatus.NOT_FOUND);
+		}
+	}
+
 
 	/*
 	 * Define a handler method which will show details of a specific user. This
@@ -64,4 +110,12 @@ public class UserController {
 	 * This handler method should map to the URL "/api/v1/user/{id}" using HTTP GET method where "id" should be
 	 * replaced by a valid userId without {}
 	 */
+	@GetMapping("/{id}")
+	public ResponseEntity<?> getUserById(@PathVariable() String id) {
+		try {
+			return new ResponseEntity<User>(service.getUserById(id), HttpStatus.OK);
+		} catch (UserNotFoundException e) {
+			return new ResponseEntity<String>("{ \"message\": \"" + e.getMessage() + "\"}", HttpStatus.NOT_FOUND);
+		}
+	}
 }

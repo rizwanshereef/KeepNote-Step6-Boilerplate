@@ -1,7 +1,23 @@
 package com.stackroute.keepnote.controller;
 
 
+import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.stackroute.keepnote.exception.UserAlreadyExistsException;
+import com.stackroute.keepnote.exception.UserNotFoundException;
+import com.stackroute.keepnote.model.User;
 import com.stackroute.keepnote.service.UserAuthenticationService;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 /*
  * As in this assignment, we are working on creating RESTful web service, hence annotate
@@ -11,6 +27,8 @@ import com.stackroute.keepnote.service.UserAuthenticationService;
  * format. Starting from Spring 4 and above, we can use @RestController annotation which 
  * is equivalent to using @Controller and @ResposeBody annotation
  */
+@RestController
+@RequestMapping("/api/v1/auth")
 public class UserAuthenticationController {
 
     /*
@@ -19,7 +37,11 @@ public class UserAuthenticationController {
 	 * keyword
 	 */
 
-    public UserAuthenticationController(UserAuthenticationService authicationService) {
+	@Autowired
+	UserAuthenticationService service;
+
+	public UserAuthenticationController(UserAuthenticationService authicationService) {
+		this.service = authicationService;
 	}
 
 /*
@@ -32,8 +54,15 @@ public class UserAuthenticationController {
 	 * 
 	 * This handler method should map to the URL "/api/v1/auth/register" using HTTP POST method
 	 */
-
-
+	@PostMapping("/register")
+	public ResponseEntity<String> register(@RequestBody User user) {
+		try {
+			service.saveUser(user);
+			return new ResponseEntity<String>("Created", HttpStatus.CREATED);
+		} catch (UserAlreadyExistsException e) {
+			return new ResponseEntity<String>(e.getMessage(), HttpStatus.CONFLICT);
+		}
+	}
 
 
 	/* Define a handler method which will authenticate a user by reading the Serialized user
@@ -49,18 +78,24 @@ public class UserAuthenticationController {
 	 * This handler method should map to the URL "/api/v1/auth/login" using HTTP POST method
 	*/
 
+	@PostMapping("/login")
+	public ResponseEntity<String> login(@RequestBody User user) {
+		try {
+			service.findByUserIdAndPassword(user.getUserId(), user.getUserPassword());
+			return new ResponseEntity<String>(getToken(user.getUserId(), user.getUserPassword()), HttpStatus.OK);
+		} catch (UserNotFoundException e) {
+			return new ResponseEntity<String>(e.getMessage(), HttpStatus.UNAUTHORIZED);
+		} catch (Exception e) {
+			return new ResponseEntity<String>(e.getMessage(), HttpStatus.UNAUTHORIZED);
+		}
+	}
 
+	// Generate JWT token
+	public String getToken(String userId, String password) throws Exception {
+		return Jwts.builder().setId(userId).setSubject(password).setIssuedAt(new Date())
+				.signWith(SignatureAlgorithm.HS256, "secretkey").compact();
 
-
-
-
-// Generate JWT token
-	public String getToken(String username, String password) throws Exception {
-			
-        return null;
-        
-        
-}
+	}
 
 
 }
